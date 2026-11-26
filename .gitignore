@@ -1,4 +1,5 @@
 *.bin
+bins/
 agent.bin
 client.bin
 agent-linux-*

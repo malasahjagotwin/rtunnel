@@ -51,11 +51,8 @@ func (t *tunnel) get() *smux.Session {
 
 func main() {
 	listen := flag.String("listen", ":"+envOr("SERVER_PORT", "14776"), "listen address")
-	token := flag.String("token", os.Getenv("TUNNEL_TOKEN"), "shared client token")
+	token := flag.String("token", os.Getenv("TUNNEL_TOKEN"), "optional shared client token")
 	flag.Parse()
-	if *token == "" {
-		log.Fatal("set TUNNEL_TOKEN (or -token); without it anyone can claim the tunnel")
-	}
 	addr := *listen
 	if !strings.Contains(addr, ":") {
 		addr = ":" + addr
@@ -87,7 +84,7 @@ func handle(c net.Conn, token string, t *tunnel) {
 		return
 	}
 
-	if line == magic+" "+token+"\n" {
+	if line == magic+"\n" || (token != "" && line == magic+" "+token+"\n") {
 		ses, err := smux.Server(&conn{Conn: c, r: br}, nil)
 		if err != nil {
 			log.Print(err)

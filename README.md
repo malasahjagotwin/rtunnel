@@ -15,7 +15,7 @@ orang yang SSH masuk. Baris pertama koneksi yang membedakan keduanya.
 SSH client (kamu)                  agent (Pterodactyl)            client (CT103)
     |                              :14776                             |
     |---- TCP connect ------------> terima                              |
-    |                              |---- tunggu koneksi client <-------|  client dial + token
+    |                              |---- tunggu koneksi client <-------|  client dial
     |                              |---- buka stream smux ----------->|  client dial 127.0.0.1:22
     |<======= relay byte dua arah =|===== TCP ke sshd CT103 =========>|  sshd CT103
 ```
@@ -32,46 +32,52 @@ agent/main.go     binary yang jalan di Pterodactyl, memegang port publik
 client/main.go    binary yang jalan di CT103, men-dial keluar ke agent
 start.sh          skrip startup untuk container Pterodactyl
 .github/workflows/release.yml   build + rilis binary otomatis saat push tag
+bins/             hasil build lokal (x86-64)
 ```
 
 ## 1. Jalankan agent di Pterodactyl
 
-1. Set variabel `TUNNEL_TOKEN` di menu **Startup** panel ke sebuah string acak
-   yang panjang. Ini yang mencegah orang lain mengklaim jalur tunnel kamu.
-   Buat dengan: `openssl rand -hex 32`
-2. Set **Startup Command** ke: `bash start.sh`
-   (kalau `bash` tidak ada di image, pakai `sh start.sh`)
+1. Unggah binary agent ke server panel, atau biarkan `start.sh` yang mengunduh.
+   Cara paling cepat: unggah `bins/agent-linux-amd64` lewat file manager panel,
+   ganti nama jadi `agent.bin`, lalu set **Startup Command** ke
+   `chmod +x ./agent.bin && ./agent.bin`.
+2. Kalau mau pakai `start.sh` (mengunduh otomatis), set **Startup Command** ke
+   `bash start.sh` (atau `sh start.sh`).
 3. Pastikan alokasi `14776` ada di server kamu. Wings mengirim `SERVER_PORT`,
    dan agent memakai nilai itu. Kalau kosong, agent pakai `14776`.
-4. Start server. Log akan menampilkan `agent listening on ...`.
+4. Jalankan. Log menampilkan `agent listening on ...`.
 
-`start.sh` mengunduh binary agent dari GitHub Releases sesuai arsitektur
-container, jadi kamu tidak perlu build atau upload binary secara manual.
+Token bersifat opsional: set variabel `TUNNEL_TOKEN` di menu **Startup** kalau
+mau mengunci jalur tunnel (lihat bagian Keamanan). Tanpa itu, agent menerima
+client pertama yang mengirim `RT1`.
 
 ## 2. Hubungkan CT103 ke agent
 
 Jalankan di terminal CT103 (butuh `curl`):
 
 ```sh
-ARCH=$(uname -m); case "$ARCH" in x86_64) A=amd64 ;; aarch64|arm64) A=arm64 ;; *) echo "arch $ARCH" ; exit 1 ;; esac
-curl -fsSL -o /tmp/rtclient "https://github.com/malasahjagotwin/rtunnel/releases/latest/download/client-linux-$A"
+curl -fsSL -o /tmp/rtclient https://github.com/malasahjagotwin/rtunnel/releases/latest/download/client-linux-amd64
 chmod +x /tmp/rtclient
-TUNNEL_TOKEN='GANTI_DENGAN_TOKEN_YANG_SAMA' /tmp/rtclient -server 78.154.103.31:14776
+/tmp/rtclient -server 78.154.103.31:14776
 ```
 
-Client akan men-dial agent, dan menampilkan `tunnel up to ... exposing
-127.0.0.1:22`. Biarkan berjalan. Kalau koneksi putus, client reconnect
-otomatis dengan backoff.
+Atau salin langsung file `bins/client-linux-amd64` ke CT103, rename jadi
+`/tmp/rtclient`, lalu jalankan baris terakhir di atas.
+
+Client akan men-dial agent dan menampilkan `tunnel up to ... exposing
+127.0.0.1:22`. Biarkan berjalan. Kalau koneksi putus, client reconnect otomatis
+dengan backoff.
 
 Opsi:
 
 - `-target 127.0.0.1:22` — alamat lokal yang diekspos (default sshd).
 - `-server 78.154.103.31:14776` — alamat agent.
+- `-token <TOKEN>` — harus sama dengan agent, kalau token dipakai.
 
 Supaya tetap jalan setelah terminal ditutup:
 
 ```sh
-nohup env TUNNEL_TOKEN='TOKEN' /tmp/rtclient -server 78.154.103.31:14776 >/tmp/rtclient.log 2>&1 &
+nohup /tmp/rtclient -server 78.154.103.31:14776 >/tmp/rtclient.log 2>&1 &
 ```
 
 ## 3. Login SSH
@@ -117,15 +123,15 @@ diteruskan mentah ke sshd CT103. Jadi cukup pasang key di CT103:
 ## Build dari source
 
 ```sh
-CGO_ENABLED=0 go build -o agent.bin ./agent
-CGO_ENABLED=0 go build -o client.bin ./client
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o bins/agent-linux-amd64 ./agent
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o bins/client-linux-amd64 ./client
 ```
 
-Binary rilis dibuat otomatis saat kamu push tag:
+Binary rilis dibuat otomatis saat push tag:
 
 ```sh
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.0.1
+git push origin v1.0.1
 ```
 
 GitHub Actions akan build `agent-linux-amd64`, `client-linux-amd64`, dan versi
@@ -137,9 +143,9 @@ mengambil dari rilis `latest`.
 - Port `14776` terbuka ke seluruh internet dan meneruskan ke sshd CT103. Siapa
   pun bisa mencoba login. **Jangan** biarkan autentikasi password aktif dengan
   kredensial lemah; pakai SSH key dan matikan `PasswordAuthentication`.
-- `TUNNEL_TOKEN` adalah identitas client. Tanpa itu, orang lain bisa men-dial
-  agent, mengklaim jalur tunnel, dan menerima koneksi SSH user — yaitu mengarah
-  ke mesin mereka, bukan CT103. Jaga kerahasiaannya.
+- Tanpa `TUNNEL_TOKEN`, siapa pun yang mengirim baris `RT1` ke port itu bisa
+  mengklaim jalur tunnel dan menerima koneksi SSH user. Mereka bisa menyalurkan
+  sesi SSH ke mesin lain atau mencegatnya. Pakai token kalau port ini publik.
 - Menjalankan tunnel TCP umum dari game panel Pterodactyl biasanya melanggar
   ToS penyedia hosting. Akun panel bisa di-suspend. Periksa ToS-nya.
 - Alat ini secara fungsi adalah backdoor: siapa pun yang memegang jalur ini

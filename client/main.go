@@ -20,8 +20,8 @@ func main() {
 	token := flag.String("token", os.Getenv("TUNNEL_TOKEN"), "shared client token")
 	target := flag.String("target", "127.0.0.1:22", "local address to expose")
 	flag.Parse()
-	if *server == "" || *token == "" {
-		log.Fatal("need -server and -token (or TUNNEL_TOKEN)")
+	if *server == "" {
+		log.Fatal("need -server host:port")
 	}
 
 	backoff := time.Second
@@ -44,7 +44,11 @@ func run(server, token, target string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := c.Write([]byte("RT1 " + token + "\n")); err != nil {
+	hello := "RT1\n"
+	if token != "" {
+		hello = "RT1 " + token + "\n"
+	}
+	if _, err := c.Write([]byte(hello)); err != nil {
 		c.Close()
 		return err
 	}
