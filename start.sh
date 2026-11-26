@@ -31,5 +31,11 @@ if [ ! -x ./agent.bin ]; then
   chmod +x agent.bin
 fi
 
+# Wings set SERVER_IP/SERVER_PORT ke alokasi server ini, jadi agent ikut otomatis
+# walau IP atau port beda. Baris ini ngeprint alamat yang harus dipakai client.
+ADDR="${SERVER_IP:-<ip-publik>}:${SERVER_PORT:-14776}"
+echo "listen di ${SERVER_IP:-0.0.0.0}:${SERVER_PORT:-14776}"
+echo "di CT jalankan: rtclient -server $ADDR"
+
 # agent membaca port dari env SERVER_PORT yang di-set Wings (fallback 14776).
 exec ./agent.bin

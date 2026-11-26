@@ -157,3 +157,15 @@ mengambil dari rilis `latest`.
   yang lama.
 - Kalau client belum tersambung, koneksi user di-drop (`no tunnel client` di log
   agent).
+- Lebih dari satu agent: `start.sh` dan binary agent yang sama dipakai di
+  Pterodactyl mana pun. Port diambil dari `SERVER_PORT`, IP ditangani Wings, jadi
+  IP/port beda tidak perlu ubah apa pun. `start.sh` mencetak alamat yang harus
+  dipakai client. Di sisi CT, jalankan satu client per agent:
+
+  ```sh
+  TUNNEL_SERVER=1.2.3.4:10001 setsid /tmp/rtclient >/tmp/rt1.log 2>&1 </dev/null &
+  TUNNEL_SERVER=5.6.7.8:10002 setsid /tmp/rtclient >/tmp/rt2.log 2>&1 </dev/null &
+  ```
+
+  Satu CT boleh tampil di beberapa agent sekaligus seperti ini; tiap client
+  berdiri sendiri.

@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	server := flag.String("server", "", "agent address host:port (required)")
+	server := flag.String("server", os.Getenv("TUNNEL_SERVER"), "agent address host:port (required)")
 	token := flag.String("token", os.Getenv("TUNNEL_TOKEN"), "shared client token")
 	target := flag.String("target", "127.0.0.1:22", "local address to expose")
 	flag.Parse()
