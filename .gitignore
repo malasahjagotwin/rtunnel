@@ -1,0 +1,6 @@
+*.bin
+agent.bin
+client.bin
+agent-linux-*
+client-linux-*
+*.log

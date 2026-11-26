@@ -1,0 +1,6 @@
+github.com/pion/transport/v5 v5.1.5 h1:73fa352Y9dq85kCd9rzyBV7wd/qhAiBIuTtwzWO3WS0=
+github.com/pion/transport/v5 v5.1.5/go.mod h1:Qxw6fCEjFWQkRDZOhS4Vf+neJBcihauvA3uyEa1J1F0=
+github.com/puzpuzpuz/xsync/v4 v4.5.0 h1:vOSWu6b57/emh+L/Cw0BeQfvxa/cogFywXHeGUxQxAg=
+github.com/puzpuzpuz/xsync/v4 v4.5.0/go.mod h1:VJDmTCJMBt8igNxnkQd86r+8KUeN1quSfNKu5bLYFQo=
+github.com/xtaci/smux v1.5.62 h1:RcrLeqTqsrQC6WUGTM2+/5SEurw5Dbq5pA6OcvRC1KM=
+github.com/xtaci/smux v1.5.62/go.mod h1:GuWFG2+NPLwbD/RE0cximAvK/W7uG5LImrSyOtzLE1w=
